@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+python-multipart
+aiofiles
+pdf2image
+python-magic
+beautifulsoup4
