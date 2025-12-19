@@ -107,18 +107,3 @@ uvicorn main:app --reload
     }
 }
 ```
-
-## 目录结构
-
-```text
-.
-├── main.py               # FastAPI 入口
-├── requirements.txt      # Python 依赖
-├── Dockerfile            # Docker 构建文件
-├── utils/
-│   ├── file_handler.py   # 文件上传与存储逻辑
-│   └── converter.py      # 核心转换逻辑 (LibreOffice/PDF/Excel/HTML)
-└── static/               # 静态文件存储 (Docker 卷挂载点)
-    ├── upload/           # 原始上传文件
-    └── convert/          # 转换后的中间产物
-```

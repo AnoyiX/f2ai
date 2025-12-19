@@ -6,6 +6,7 @@ FROM python:3.13-slim
 # poppler-utils: for converting pdf to images (used by pdf2image)
 # libmagic1: for python-magic
 # fonts-liberation, fonts-wqy-zenhei: fonts to support various languages (including Chinese)
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice-writer \
     libreoffice-impress \
@@ -21,7 +22,7 @@ WORKDIR /app
 
 # Install python dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
 
 # Copy application code
 COPY . .
