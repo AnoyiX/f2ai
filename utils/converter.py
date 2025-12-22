@@ -59,7 +59,7 @@ def convert_office_to_pdf(input_path: str, output_dir: str) -> str:
         print(f"Error converting to PDF: {e}")
         return ""
 
-def convert_pdf_to_images(pdf_path: str, output_dir: str) -> List[str]:
+def convert_pdf_to_images(pdf_path: str, output_dir: str, max_width: int = None, max_height: int = None) -> List[str]:
     """
     Convert PDF to images using pdf2image.
     Returns list of image URLs.
@@ -73,6 +73,19 @@ def convert_pdf_to_images(pdf_path: str, output_dir: str) -> List[str]:
             image_filename = f"{i+1}.jpg"
             image_path = os.path.join(output_dir, image_filename)
             image.save(image_path, "JPEG")
+            
+            # Resize if dimensions provided
+            if max_width and max_height:
+                try:
+                    # Use ImageMagick to resize
+                    # Syntax: convert input.jpg -resize "WxH>" output.jpg
+                    # > means: only shrink if larger than dimensions
+                    resize_arg = f"{max_width}x{max_height}>"
+                    cmd = ["convert", image_path, "-resize", resize_arg, image_path]
+                    subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                except Exception as e:
+                    print(f"Error resizing image {image_path}: {e}")
+
             # Construct URL (assuming static mount at root)
             image_urls.append(f"/{output_dir}/{image_filename}")
         return image_urls
@@ -149,7 +162,7 @@ def convert_excel_to_html(input_path: str, output_dir: str) -> str:
         print(f"Error converting Excel to HTML: {e}")
         return f"Error converting Excel file: {str(e)}"
 
-def process_file(file_info: Dict[str, Any]) -> Dict[str, Any]:
+def process_file(file_info: Dict[str, Any], image_width: int = None, image_height: int = None) -> Dict[str, Any]:
     file_path = file_info['path']
     filename = file_info['name']
     md5 = file_info['md5']
@@ -173,13 +186,13 @@ def process_file(file_info: Dict[str, Any]) -> Dict[str, Any]:
         if pdf_path and os.path.exists(pdf_path):
             result["pdf"] = f"/{convert_dir}/result.pdf"
             # Convert PDF to images
-            result["images"] = convert_pdf_to_images(pdf_path, convert_dir)
+            result["images"] = convert_pdf_to_images(pdf_path, convert_dir, image_width, image_height)
     
     # 2. PDF
     elif ext == '.pdf':
         # Use original upload path, no need to copy
         result["pdf"] = file_info['url']
-        result["images"] = convert_pdf_to_images(file_path, convert_dir)
+        result["images"] = convert_pdf_to_images(file_path, convert_dir, image_width, image_height)
 
     # 3. Excel
     elif ext in ['.xls', '.xlsx']:

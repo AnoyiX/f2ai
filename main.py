@@ -1,5 +1,6 @@
 import uvicorn
-from fastapi import FastAPI, File, UploadFile
+import os
+from fastapi import FastAPI, File, UploadFile, Header, HTTPException, Depends, Form
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -11,15 +12,32 @@ app = FastAPI()
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.post("/api/process")
-async def process_upload(file: UploadFile = File(...)):
+
+async def verify_token(x_api_token: str | None = Header(default=None, alias="X-API-Token")):
+    """
+    Verify API Token from Header X-API-Token
+    If API_TOKEN env var is set, request must include valid X-API-Token
+    """
+    env_token = os.getenv("API_TOKEN")
+    if env_token:
+        if not x_api_token or x_api_token != env_token:
+            raise HTTPException(status_code=401, detail="Invalid or missing API Token")
+    return x_api_token
+
+
+@app.post("/api/process", dependencies=[Depends(verify_token)])
+async def process_upload(
+    file: UploadFile = File(...),
+    imgH: int | None = Form(1024),
+    imgW: int | None = Form(1024)
+):
     try:
         # 1. Save File
         file_info = await save_upload_file(file)
-        
+
         # 2. Process File (Convert/Read)
-        ai_data = process_file(file_info)
-        
+        ai_data = process_file(file_info, imgW, imgH)
+
         # 3. Construct Response
         response_data = {
             "code": 200,
@@ -36,7 +54,7 @@ async def process_upload(file: UploadFile = File(...)):
             }
         }
         return JSONResponse(content=response_data)
-        
+
     except Exception as e:
         return JSONResponse(content={
             "code": 500,

@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice-impress \
     libreoffice-calc \
     poppler-utils \
+    imagemagick \
     libmagic1 \
     fonts-liberation \
     fonts-wqy-zenhei \
@@ -29,6 +30,9 @@ COPY . .
 
 # Create necessary directories
 RUN mkdir -p static/upload static/convert
+
+# Environment variables
+ENV API_TOKEN=""
 
 # Expose port
 EXPOSE 8000

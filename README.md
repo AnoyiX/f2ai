@@ -28,26 +28,19 @@
 - **多媒体文件 (Video/Audio)**
   - 不进行转换，直接存储并返回文件访问地址。
 
-## 技术栈
-
-- **Web 框架**: FastAPI
-- **文档转换**: LibreOffice (soffice)
-- **PDF 处理**: Poppler (pdf2image)
-- **HTML 清洗**: BeautifulSoup4
-- **容器化**: Docker
 
 ## 快速开始
 
 ### 1. 使用 Docker 运行 (推荐)
 
-项目已完全容器化，支持一键部署，无需手动安装复杂的依赖（如 LibreOffice, Poppler）。
+项目已完全容器化，支持一键部署，无需手动安装复杂的依赖（如 LibreOffice, Poppler, ImageMagick）。
 
 ```bash
 # 构建镜像
 docker build -t f2ai:latest .
 
-# 运行容器
-docker run -d -p 8000:8000 --name f2ai f2ai:latest
+# 运行容器 (可选: 设置 API Token)
+docker run -d -p 8000:8000 -e API_TOKEN=your_secret_token --name f2ai f2ai:latest
 ```
 
 ### 2. 本地开发 (MacOS)
@@ -57,12 +50,13 @@ docker run -d -p 8000:8000 --name f2ai f2ai:latest
 ```bash
 # 安装系统依赖
 brew install --cask libreoffice
-brew install poppler
+brew install poppler imagemagick
 
 # 安装 Python 依赖
 pip install -r requirements.txt
 
 # 启动服务
+# 可选: export API_TOKEN=your_secret_token
 uvicorn main:app --reload
 ```
 
@@ -76,9 +70,17 @@ uvicorn main:app --reload
 
 #### 请求参数
 
-| 参数名 | 类型 | 必选 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `file` | File | 是 | 需要上传的文件 |
+| 参数名 | 类型    | 必选 | 说明                                                   |
+| :----- | :------ | :--- | :----------------------------------------------------- |
+| `file` | File    | 是   | 需要上传的文件                                         |
+| `imgW` | Integer | 否   | 图片最大宽度（像素），仅当原图尺寸超过该值时才会缩小。 |
+| `imgH` | Integer | 否   | 图片最大高度（像素），仅当原图尺寸超过该值时才会缩小。 |
+
+#### 请求头 (可选)
+
+| 参数名        | 说明                                                               |
+| :------------ | :----------------------------------------------------------------- |
+| `X-API-Token` | API 认证 Token (如果服务端设置了 `API_TOKEN` 环境变量，则此项必填) |
 
 #### 响应示例
 
