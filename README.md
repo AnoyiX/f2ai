@@ -26,14 +26,16 @@
   - 返回纯文本内容。
 
 - **多媒体文件 (Video/Audio)**
-  - 不进行转换，直接存储并返回文件访问地址。
+  - 视频文件支持自动按帧抽取并转换为图片列表（需开启 `enableV2I`）。
+  - 支持自定义抽帧间隔和图片缩放。
+  - 原始文件直接存储并返回访问地址。
 
 
 ## 快速开始
 
 ### 1. 使用 Docker 运行 (推荐)
 
-项目已完全容器化，支持一键部署，无需手动安装复杂的依赖（如 LibreOffice, Poppler, ImageMagick）。
+项目已完全容器化，支持一键部署，无需手动安装复杂的依赖（如 LibreOffice, Poppler, ImageMagick, FFmpeg）。
 
 ```bash
 # 构建镜像
@@ -50,7 +52,7 @@ docker run -d -p 8000:8000 -e API_TOKEN=your_secret_token --name f2ai f2ai:lates
 ```bash
 # 安装系统依赖
 brew install --cask libreoffice
-brew install poppler imagemagick
+brew install poppler imagemagick ffmpeg
 
 # 安装 Python 依赖
 pip install -r requirements.txt
@@ -70,11 +72,13 @@ uvicorn main:app --reload
 
 #### 请求参数
 
-| 参数名 | 类型    | 必选 | 说明                                                   |
-| :----- | :------ | :--- | :----------------------------------------------------- |
-| `file` | File    | 是   | 需要上传的文件                                         |
-| `imgW` | Integer | 否   | 图片最大宽度（像素），仅当原图尺寸超过该值时才会缩小。 |
-| `imgH` | Integer | 否   | 图片最大高度（像素），仅当原图尺寸超过该值时才会缩小。 |
+| 参数名      | 类型    | 必选 | 默认值 | 说明                                                   |
+| :---------- | :------ | :--- | :----- | :----------------------------------------------------- |
+| `file`      | File    | 是   | -      | 需要上传的文件                                         |
+| `imgW`      | Integer | 否   | 1024   | 图片最大宽度（像素），仅当原图尺寸超过该值时才会缩小。 |
+| `imgH`      | Integer | 否   | 1024   | 图片最大高度（像素），仅当原图尺寸超过该值时才会缩小。 |
+| `enableV2I` | Boolean | 否   | True   | 是否开启视频转图片功能。                               |
+| `videoFPS`  | Float   | 否   | 1.0    | 视频截帧间隔（秒），例如 1.0 表示每秒截取一帧。        |
 
 #### 请求头 (可选)
 

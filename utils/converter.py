@@ -162,7 +162,53 @@ def convert_excel_to_html(input_path: str, output_dir: str) -> str:
         print(f"Error converting Excel to HTML: {e}")
         return f"Error converting Excel file: {str(e)}"
 
-def process_file(file_info: Dict[str, Any], image_width: int = None, image_height: int = None) -> Dict[str, Any]:
+def convert_video_to_images(video_path: str, output_dir: str, interval: float = 1.0, max_width: int = None, max_height: int = None) -> List[str]:
+    """
+    Convert Video to images using ffmpeg.
+    Returns list of image URLs.
+    """
+    try:
+        # ffmpeg -i input.mp4 -vf "fps=1/interval,scale=w:h" output_%03d.jpg
+        
+        vf_filters = []
+        if interval > 0:
+            vf_filters.append(f"fps=1/{interval}")
+            
+        if max_width and max_height:
+            # Scale while keeping aspect ratio, fit within box
+            # force_original_aspect_ratio=decrease ensures it fits inside the box
+            vf_filters.append(f"scale='min({max_width},iw)':'min({max_height},ih)':force_original_aspect_ratio=decrease")
+        
+        vf_arg = ",".join(vf_filters)
+        
+        output_pattern = os.path.join(output_dir, "frame_%03d.jpg")
+        
+        # Clean up existing frames in output_dir if any? 
+        # Actually output_dir is per file (md5), so it should be fine.
+        
+        cmd = [
+            "ffmpeg",
+            "-i", video_path,
+            "-vf", vf_arg,
+            "-q:v", "2", # High quality
+            output_pattern
+        ]
+        
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        # Collect generated images
+        image_urls = []
+        # Sort files to ensure order
+        files = sorted([f for f in os.listdir(output_dir) if f.startswith("frame_") and f.endswith(".jpg")])
+        for f in files:
+            image_urls.append(f"/{output_dir}/{f}")
+            
+        return image_urls
+    except Exception as e:
+        print(f"Error converting Video to images: {e}")
+        return []
+
+def process_file(file_info: Dict[str, Any], image_width: int = None, image_height: int = None, enbaleV2I: bool = True, videoFPS: float = 1.0) -> Dict[str, Any]:
     file_path = file_info['path']
     filename = file_info['name']
     md5 = file_info['md5']
@@ -201,6 +247,8 @@ def process_file(file_info: Dict[str, Any], image_width: int = None, image_heigh
     # 4. Video/Audio
     elif content_type.startswith('video/'):
         result["video"] = file_info['url']
+        if enbaleV2I:
+            result["images"] = convert_video_to_images(file_path, convert_dir, videoFPS, image_width, image_height)
     elif content_type.startswith('audio/'):
         result["audio"] = file_info['url']
         

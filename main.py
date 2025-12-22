@@ -28,15 +28,17 @@ async def verify_token(x_api_token: str | None = Header(default=None, alias="X-A
 @app.post("/api/process", dependencies=[Depends(verify_token)])
 async def process_upload(
     file: UploadFile = File(...),
-    imgH: int | None = Form(1024),
-    imgW: int | None = Form(1024)
+    imgH: int = Form(1024),
+    imgW: int = Form(1024),
+    enbaleV2I: bool = Form(True),
+    videoFPS: float = Form(1.0)
 ):
     try:
         # 1. Save File
         file_info = await save_upload_file(file)
 
         # 2. Process File (Convert/Read)
-        ai_data = process_file(file_info, imgW, imgH)
+        ai_data = process_file(file_info, imgW, imgH, enbaleV2I, videoFPS)
 
         # 3. Construct Response
         response_data = {
