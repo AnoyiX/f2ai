@@ -38,13 +38,18 @@ async def save_upload_file(file: UploadFile) -> dict:
     # For better memory usage, we could read chunk by chunk, update md5, and write to temp file.
     # But for simplicity and assuming reasonable file sizes for this demo:
     
-    filename = file.filename
+    filename = os.path.basename(file.filename)
     file_path = os.path.join(save_dir, filename)
     
-    # Handle duplicate filenames in same directory if needed, 
-    # but requirement says "upload/" then by date. 
-    # If same name exists, we overwrite or rename? 
-    # Let's just write it.
+    # Handle duplicate filenames: append _1, _2, etc.
+    if os.path.exists(file_path):
+        root, ext = os.path.splitext(filename)
+        counter = 1
+        while os.path.exists(file_path):
+            new_filename = f"{root}_{counter}{ext}"
+            file_path = os.path.join(save_dir, new_filename)
+            counter += 1
+        filename = os.path.basename(file_path)
     
     with open(file_path, "wb") as f:
         f.write(content)
