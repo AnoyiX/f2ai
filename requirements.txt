@@ -5,3 +5,5 @@ aiofiles
 pdf2image
 python-magic
 beautifulsoup4
+faster-whisper
+dotenv

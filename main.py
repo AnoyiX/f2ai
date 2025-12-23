@@ -1,44 +1,43 @@
-import uvicorn
 import os
-from fastapi import FastAPI, File, UploadFile, Header, HTTPException, Depends, Form
+
+import uvicorn
+from dotenv import load_dotenv
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from utils.converter import process_file
 from utils.file_handler import save_upload_file
 
-app = FastAPI()
+load_dotenv()
+
+app = FastAPI(version="0.3.3")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-async def verify_token(x_api_token: str | None = Header(default=None, alias="X-API-Token")):
-    """
-    Verify API Token from Header X-API-Token
-    If API_TOKEN env var is set, request must include valid X-API-Token
-    """
-    env_token = os.getenv("API_TOKEN")
-    if env_token:
-        if not x_api_token or x_api_token != env_token:
-            raise HTTPException(status_code=401, detail="Invalid or missing API Token")
-    return x_api_token
-
-
-@app.post("/api/process", dependencies=[Depends(verify_token)])
+@app.post("/api/process")
 async def process_upload(
+    token: str | None = Form(None),
     file: UploadFile = File(...),
     imgH: int = Form(1024),
     imgW: int = Form(1024),
     enbaleV2I: bool = Form(True),
-    videoFPS: float = Form(1.0)
+    videoFPS: float = Form(1.0),
+    enableA2T: bool = Form(True),
+    audioLanguage: str | None = Form(None)
 ):
+    api_token = os.getenv("API_TOKEN")
+    if api_token:
+        if not token or token != api_token:
+            raise HTTPException(status_code=401, detail="Invalid or missing API Token")
     try:
         # 1. Save File
         file_info = await save_upload_file(file)
 
         # 2. Process File (Convert/Read)
-        ai_data = process_file(file_info, imgW, imgH, enbaleV2I, videoFPS)
+        ai_data = process_file(file_info, imgW, imgH, enbaleV2I, videoFPS, enableA2T, audioLanguage)
 
         # 3. Construct Response
         response_data = {
