@@ -7,3 +7,5 @@ python-magic
 beautifulsoup4
 faster-whisper
 dotenv
+qdrant-client
+httpx
