@@ -35,7 +35,6 @@
 | `ARK_EMBEDDING_MODEL` | 否     | `doubao-embedding-vision-251215` | 火山引擎多模态 Embedding 模型 ID。                 |
 | `QDRANT_HOST`         | 否     | `http://localhost:6333`          | Qdrant 向量数据库地址。                            |
 | `QDRANT_API_KEY`      | 否     | -                                | Qdrant 访问密钥 (如有)。                           |
-| `QDRANT_COLLECTION`   | 否     | `f2ai_embeddings`                | 默认集合名称 (可被接口参数覆盖)。                  |
 
 ### 2. 使用 Docker 运行 (推荐)
 
@@ -128,7 +127,8 @@ uvicorn main:app --reload
 
 ### 2. 向量存储接口
 
-将文本或图片转换为向量并存储到 Qdrant，支持自定义元数据。
+将多模态数据（文本、图片、视频等）融合为一个向量并存储到 Qdrant，支持自定义元数据。
+注意：此接口会将 `items` 列表中的所有内容压缩为一个向量存储。
 
 - **URL**: `/api/vector/store`
 - **Method**: `POST`
@@ -139,7 +139,8 @@ uvicorn main:app --reload
 | 参数名       | 类型   | 必选 | 说明                                                      |
 | :----------- | :----- | :--- | :-------------------------------------------------------- |
 | `collection` | String | 是   | 目标向量集合名称 (如 `ppt_knowledge`)。不存在会自动创建。 |
-| `items`      | List   | 是   | 需要向量化的对象列表。                                    |
+| `items`      | List   | 是   | 需要向量化的多模态片段列表。                              |
+| `metadata`   | Object | 否   | 任意 JSON 对象，随向量存储 (如 `{"page": 1, "file": "a.pdf"}`)。 |
 
 **Item 对象结构:**
 
@@ -148,7 +149,6 @@ uvicorn main:app --reload
 | `type`      | String | 是   | `text` 或 `image_url`。                                          |
 | `text`      | String | 否   | 当 type 为 text 时必填。                                         |
 | `image_url` | Object | 否   | 当 type 为 image_url 时必填，格式 `{"url": "http..."}`。         |
-| `metadata`  | Object | 否   | 任意 JSON 对象，随向量存储 (如 `{"page": 1, "file": "a.pdf"}`)。 |
 
 #### 请求示例
 
@@ -158,15 +158,17 @@ uvicorn main:app --reload
   "items": [
     {
       "type": "text",
-      "text": "F2AI 是一个强大的文件处理服务。",
-      "metadata": { "source": "readme.md", "section": "intro" }
+      "text": "F2AI 是一个强大的文件处理服务。"
     },
     {
       "type": "image_url",
-      "image_url": { "url": "https://example.com/diagram.jpg" },
-      "metadata": { "source": "design.pptx", "page": 5 }
+      "image_url": { "url": "https://example.com/diagram.jpg" }
     }
-  ]
+  ],
+  "metadata": {
+    "source": "readme.md",
+    "section": "intro"
+  }
 }
 ```
 
@@ -177,15 +179,14 @@ uvicorn main:app --reload
     "code": 200,
     "message": "success",
     "data": {
-        "count": 2,
-        "ids": ["uuid-1...", "uuid-2..."]
+        "id": "uuid-1..."
     }
 }
 ```
 
 ### 3. 向量检索接口
 
-输入文本或图片，在指定集合中检索最相似的内容。
+输入多模态数据（文本、图片、视频等），在指定集合中检索最相似的内容。
 
 - **URL**: `/api/vector/search`
 - **Method**: `POST`
@@ -196,7 +197,7 @@ uvicorn main:app --reload
 | 参数名       | 类型    | 必选 | 说明                                                           |
 | :----------- | :------ | :--- | :------------------------------------------------------------- |
 | `collection` | String  | 是   | 搜索的目标集合名称。                                           |
-| `item`       | Object  | 是   | 查询对象，结构同存储接口的 Item (支持 `text` 或 `image_url`)。 |
+| `items`      | List    | 是   | 查询对象列表，支持多模态混合查询。                             |
 | `limit`      | Integer | 否   | 返回结果数量，默认 5。                                         |
 
 #### 请求示例
@@ -204,10 +205,12 @@ uvicorn main:app --reload
 ```json
 {
   "collection": "project_docs",
-  "item": {
-    "type": "text",
-    "text": "文件处理服务的功能有哪些？"
-  },
+  "items": [
+    {
+      "type": "text",
+      "text": "文件处理服务的功能有哪些？"
+    }
+  ],
   "limit": 3
 }
 ```
@@ -224,13 +227,55 @@ uvicorn main:app --reload
                 "id": "uuid-1...",
                 "score": 0.892,
                 "payload": {
-                    "type": "text",
-                    "text": "F2AI 是一个强大的文件处理服务。",
+                    "items": [
+                        {
+                            "type": "text",
+                            "text": "F2AI 是一个强大的文件处理服务。"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": { "url": "https://example.com/diagram.jpg" }
+                        }
+                    ],
                     "source": "readme.md",
                     "section": "intro"
                 }
             }
         ]
+    }
+}
+```
+
+### 4. 向量清空接口
+
+清空指定集合中的所有向量数据。
+
+- **URL**: `/api/vector/clear`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+#### 请求参数 (JSON Body)
+
+| 参数名       | 类型   | 必选 | 说明                 |
+| :----------- | :----- | :--- | :------------------- |
+| `collection` | String | 是   | 需要清空的集合名称。 |
+
+#### 请求示例
+
+```json
+{
+  "collection": "project_docs"
+}
+```
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "deleted": true
     }
 }
 ```

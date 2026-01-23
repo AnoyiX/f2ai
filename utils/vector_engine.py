@@ -1,6 +1,5 @@
-import asyncio
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from uuid import uuid4
 
 import httpx
@@ -14,9 +13,10 @@ class VectorEngine:
         self.ark_model = os.getenv("ARK_EMBEDDING_MODEL", "doubao-embedding-vision-251215")
         self.qdrant_host = os.getenv("QDRANT_HOST", "http://localhost:6333")
         self.qdrant_api_key = os.getenv("QDRANT_API_KEY", None)
+        print(self.qdrant_host, self.qdrant_api_key)
         self.qdrant = QdrantClient(url=self.qdrant_host, api_key=self.qdrant_api_key)
 
-    async def get_embeddings(self, inputs: List[Dict[str, Any]]) -> List[List[float]]:
+    async def get_embedding(self, inputs: List[Dict[str, Any]], instructions: str = "") -> List[float]:
         if not self.ark_api_key:
             raise ValueError("ARK_API_KEY未配置")
         url = "https://ark.cn-beijing.volces.com/api/v3/embeddings/multimodal"
@@ -24,13 +24,12 @@ class VectorEngine:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.ark_api_key}",
         }
-        payload = {"model": self.ark_model, "input": inputs}
-        async with httpx.AsyncClient(timeout=60) as client:
+        payload = {"model": self.ark_model, "input": inputs, "instructions": instructions}
+        async with httpx.AsyncClient(timeout=300) as client:
             r = await client.post(url, headers=headers, json=payload)
             r.raise_for_status()
             data = r.json()
-        items = data.get("data") or []
-        return [item.get("embedding") for item in items]
+        return data.get("data", {}).get("embedding")
 
     def _collection_exists(self, collection_name: str) -> bool:
         cols = self.qdrant.get_collections().collections or []
@@ -45,20 +44,20 @@ class VectorEngine:
             vectors_config=VectorParams(size=size, distance=Distance.COSINE),
         )
 
-    def upsert_vectors(self, vectors: List[List[float]], payloads: List[Dict[str, Any]], collection_name: str) -> List[str]:
-        if not vectors:
-            return []
-        self.ensure_collection(len(vectors[0]), collection_name)
-        points = []
-        ids = []
-        for vec, pl in zip(vectors, payloads):
-            pid = str(uuid4())
-            ids.append(pid)
-            points.append(PointStruct(id=pid, vector=vec, payload=pl))
+    def upsert_vector(self, vector: List[float], payload: Dict[str, Any], collection_name: str) -> List[str]:
+        self.ensure_collection(len(vector), collection_name)
+        vid = str(uuid4())
+        points = [PointStruct(id=vid, vector=vector, payload=payload)]
         self.qdrant.upsert(collection_name=collection_name, points=points)
-        return ids
+        return vid
 
-    def search_vectors(self, vector: List[float], limit: int = 5, collection_name: str = "f2ai_embeddings") -> List[Dict[str, Any]]:
+    def delete_collection(self, collection_name: str) -> bool:
+        if self._collection_exists(collection_name):
+            self.qdrant.delete_collection(collection_name=collection_name)
+            return True
+        return False
+
+    def search_vectors(self, vector: List[float], limit: int = 5, collection_name: str = "") -> List[Dict[str, Any]]:
         self.ensure_collection(len(vector), collection_name)
         res = self.qdrant.search(
             collection_name=collection_name,
