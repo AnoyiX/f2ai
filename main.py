@@ -14,12 +14,13 @@ from utils.vector_engine import VectorEngine
 
 load_dotenv()
 
-app = FastAPI(version="0.4.0")
+app = FastAPI(version="0.4.1")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 engine = VectorEngine()
+
 
 class StoreRequest(BaseModel):
     items: List[Dict[str, Any]]
@@ -53,12 +54,10 @@ async def process_upload(
     enbaleV2I: bool = Form(True),
     videoFPS: float = Form(1.0),
     enableA2T: bool = Form(True),
-    audioLanguage: str | None = Form(None)
+    audioLanguage: str | None = Form(None),
+    h_token: str | None = Header(None, alias="token")
 ):
-    api_token = os.getenv("API_TOKEN")
-    if api_token:
-        if not token or token != api_token:
-            raise HTTPException(status_code=401, detail="Invalid or missing API Token")
+    verify_token(token or h_token)
     try:
         # 1. Save File
         file_info = await save_upload_file(file)
