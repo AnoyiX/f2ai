@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import httpx
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import Distance, PointStruct, VectorParams, Filter, FieldCondition, MatchValue
 
 
 class VectorEngine:
@@ -70,6 +70,32 @@ class VectorEngine:
             out.append({
                 "id": str(p.id),
                 "score": p.score,
+                "payload": p.payload or {},
+            })
+        return out
+
+    def query_vectors(self, query: Dict[str, Any], limit: int = 5, collection_name: str = "") -> List[Dict[str, Any]]:
+        if not self._collection_exists(collection_name):
+            return []
+
+        conditions = []
+        for key, value in query.items():
+            conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
+
+        q_filter = Filter(must=conditions) if conditions else None
+
+        res, _ = self.qdrant.scroll(
+            collection_name=collection_name,
+            scroll_filter=q_filter,
+            limit=limit,
+            with_payload=True,
+            with_vectors=False
+        )
+
+        out = []
+        for p in res:
+            out.append({
+                "id": str(p.id),
                 "payload": p.payload or {},
             })
         return out

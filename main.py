@@ -38,6 +38,12 @@ class ClearRequest(BaseModel):
     collection: str
 
 
+class QueryRequest(BaseModel):
+    query: Dict[str, Any]
+    limit: int = 5
+    collection: str
+
+
 def verify_token(token: Optional[str]) -> None:
     api_token = os.getenv("API_TOKEN")
     if api_token:
@@ -133,6 +139,16 @@ async def vector_search(req: SearchRequest, token: Optional[str] = Header(None))
         instructions = f"Target_modality: {' and '.join(types)}.\nInstruction:Compress the {'/'.join(types)} into one word.\nQuery:"
         embedding = await engine.get_embedding(req.items, instructions)
         results = engine.search_vectors(embedding, limit=req.limit, collection_name=req.collection)
+        return JSONResponse(content={"code": 200, "message": "success", "data": {"items": results}})
+    except Exception as e:
+        return JSONResponse(content={"code": 500, "message": str(e), "data": None})
+
+
+@app.post("/api/vector/query")
+async def vector_query(req: QueryRequest, token: Optional[str] = Header(None)):
+    verify_token(token)
+    try:
+        results = engine.query_vectors(req.query, limit=req.limit, collection_name=req.collection)
         return JSONResponse(content={"code": 200, "message": "success", "data": {"items": results}})
     except Exception as e:
         return JSONResponse(content={"code": 500, "message": str(e), "data": None})

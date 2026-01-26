@@ -245,7 +245,61 @@ uvicorn main:app --reload
 }
 ```
 
-### 4. 向量清空接口
+### 4. 向量元数据查询接口
+
+根据元数据精确查询向量数据。
+
+- **URL**: `/api/vector/query`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+#### 请求参数 (JSON Body)
+
+| 参数名       | 类型    | 必选 | 说明                               |
+| :----------- | :------ | :--- | :--------------------------------- |
+| `collection` | String  | 是   | 搜索的目标集合名称。               |
+| `query`      | Object  | 是   | 查询条件，键值对匹配。             |
+| `limit`      | Integer | 否   | 返回结果数量，默认 5。             |
+
+#### 请求示例
+
+```json
+{
+  "collection": "project_docs",
+  "query": {
+    "source": "readme.md"
+  },
+  "limit": 3
+}
+```
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "items": [
+            {
+                "id": "uuid-1...",
+                "payload": {
+                    "items": [
+                        {
+                            "type": "text",
+                            "text": "F2AI 是一个强大的文件处理服务。"
+                        }
+                    ],
+                    "source": "readme.md",
+                    "section": "intro"
+                }
+            }
+        ]
+    }
+}
+```
+
+### 5. 向量清空接口
 
 清空指定集合中的所有向量数据。
 
