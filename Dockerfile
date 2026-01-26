@@ -32,9 +32,6 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p static/upload static/convert
 
-# Environment variables
-ENV API_TOKEN=""
-
 # Expose port
 EXPOSE 8000
 
