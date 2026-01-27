@@ -14,7 +14,7 @@ from utils.vector_engine import VectorEngine
 
 load_dotenv()
 
-app = FastAPI(version="0.4.2")
+app = FastAPI(version="0.4.3")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
