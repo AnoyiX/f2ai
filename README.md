@@ -198,6 +198,7 @@ uvicorn main:app --reload
 | `collection` | String  | 是   | 搜索的目标集合名称。               |
 | `items`      | List    | 是   | 查询对象列表，支持多模态混合查询。 |
 | `limit`      | Integer | 否   | 返回结果数量，默认 5。             |
+| `filter`     | Object  | 否   | 过滤条件，键值对匹配。             |
 
 #### 请求示例
 
@@ -210,7 +211,10 @@ uvicorn main:app --reload
       "text": "文件处理服务的功能有哪些？"
     }
   ],
-  "limit": 3
+  "limit": 3,
+  "filter": {
+    "source": "readme.md"
+  }
 }
 ```
 

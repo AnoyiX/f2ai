@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 import httpx
@@ -57,11 +57,21 @@ class VectorEngine:
             return True
         return False
 
-    def search_vectors(self, vector: List[float], limit: int = 5, collection_name: str = "") -> List[Dict[str, Any]]:
+    def search_vectors(self, vector: List[float], limit: int = 5, collection_name: str = "", filter: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         self.ensure_collection(len(vector), collection_name)
+
+        q_filter = None
+        if filter:
+            conditions = []
+            for key, value in filter.items():
+                conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
+            if conditions:
+                q_filter = Filter(must=conditions)
+
         res = self.qdrant.search(
             collection_name=collection_name,
             query_vector=vector,
+            query_filter=q_filter,
             limit=limit,
             with_payload=True,
         )
