@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from utils.converter import process_file
@@ -14,7 +15,15 @@ from utils.vector_engine import VectorEngine
 
 load_dotenv()
 
-app = FastAPI(version="0.4.4")
+app = FastAPI(version="0.4.5")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
