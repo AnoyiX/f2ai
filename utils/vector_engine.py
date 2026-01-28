@@ -57,7 +57,7 @@ class VectorEngine:
             return True
         return False
 
-    def search_vectors(self, vector: List[float], limit: int = 5, collection_name: str = "", filter: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    def search_vectors(self, vector: List[float], limit: int = 5, collection_name: str = "", filter: Optional[Dict[str, Any]] = None, score_threshold: float = 0.2) -> List[Dict[str, Any]]:
         self.ensure_collection(len(vector), collection_name)
 
         q_filter = None
@@ -74,6 +74,7 @@ class VectorEngine:
             query_filter=q_filter,
             limit=limit,
             with_payload=True,
+            score_threshold=score_threshold,
         )
         out = []
         for p in res:

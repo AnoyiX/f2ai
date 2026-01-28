@@ -14,7 +14,7 @@ from utils.vector_engine import VectorEngine
 
 load_dotenv()
 
-app = FastAPI(version="0.4.3")
+app = FastAPI(version="0.4.4")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -33,6 +33,7 @@ class SearchRequest(BaseModel):
     limit: int = 5
     collection: str
     filter: Optional[Dict[str, Any]] = None
+    score: float = 0.2
 
 
 class ClearRequest(BaseModel):
@@ -139,7 +140,7 @@ async def vector_search(req: SearchRequest, token: Optional[str] = Header(None))
                 types.append("video")
         instructions = f"Target_modality: {' and '.join(types)}.\nInstruction:Compress the {'/'.join(types)} into one word.\nQuery:"
         embedding = await engine.get_embedding(req.items, instructions)
-        results = engine.search_vectors(embedding, limit=req.limit, collection_name=req.collection, filter=req.filter)
+        results = engine.search_vectors(embedding, limit=req.limit, collection_name=req.collection, filter=req.filter, score_threshold=req.score)
         return JSONResponse(content={"code": 200, "message": "success", "data": {"items": results}})
     except Exception as e:
         return JSONResponse(content={"code": 500, "message": str(e), "data": None})

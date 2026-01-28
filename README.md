@@ -199,6 +199,7 @@ uvicorn main:app --reload
 | `items`      | List    | 是   | 查询对象列表，支持多模态混合查询。 |
 | `limit`      | Integer | 否   | 返回结果数量，默认 5。             |
 | `filter`     | Object  | 否   | 过滤条件，键值对匹配。             |
+| `score`      | Float   | 否   | 相似度阈值，默认 0.2。            |
 
 #### 请求示例
 
