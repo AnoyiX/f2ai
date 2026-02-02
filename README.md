@@ -198,6 +198,7 @@ uvicorn main:app --reload
 | `collection` | String  | 是   | 搜索的目标集合名称。               |
 | `items`      | List    | 是   | 查询对象列表，支持多模态混合查询。 |
 | `limit`      | Integer | 否   | 返回结果数量，默认 5。             |
+| `offset`     | Integer | 否   | 结果偏移量，用于分页，默认 0。     |
 | `filter`     | Object  | 否   | 过滤条件，键值对匹配。             |
 | `score`      | Float   | 否   | 相似度阈值，默认 0.2。            |
 
@@ -265,6 +266,7 @@ uvicorn main:app --reload
 | `collection` | String  | 是   | 搜索的目标集合名称。               |
 | `query`      | Object  | 是   | 查询条件，键值对匹配。             |
 | `limit`      | Integer | 否   | 返回结果数量，默认 5。             |
+| `offset`     | Int/Str | 否   | 分页参数。传入整数时为偏移量（跳过 N 条）；传入字符串时为游标（上一页最后一条的 ID）。 |
 
 #### 请求示例
 

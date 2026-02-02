@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from uuid import uuid4
 
 import httpx
@@ -57,7 +57,7 @@ class VectorEngine:
             return True
         return False
 
-    def search_vectors(self, vector: List[float], limit: int = 5, collection_name: str = "", filter: Optional[Dict[str, Any]] = None, score_threshold: float = 0.2) -> List[Dict[str, Any]]:
+    def search_vectors(self, vector: List[float], limit: int = 5, offset: int = 0, collection_name: str = "", filter: Optional[Dict[str, Any]] = None, score_threshold: float = 0.2) -> List[Dict[str, Any]]:
         self.ensure_collection(len(vector), collection_name)
 
         q_filter = None
@@ -73,6 +73,7 @@ class VectorEngine:
             query_vector=vector,
             query_filter=q_filter,
             limit=limit,
+            offset=offset,
             with_payload=True,
             score_threshold=score_threshold,
         )
@@ -85,7 +86,7 @@ class VectorEngine:
             })
         return out
 
-    def query_vectors(self, query: Dict[str, Any], limit: int = 5, collection_name: str = "") -> List[Dict[str, Any]]:
+    def query_vectors(self, query: Dict[str, Any], limit: int = 5, offset: Union[int, str, None] = None, collection_name: str = "") -> List[Dict[str, Any]]:
         if not self._collection_exists(collection_name):
             return []
 
@@ -95,10 +96,29 @@ class VectorEngine:
 
         q_filter = Filter(must=conditions) if conditions else None
 
+        # Handle offset
+        scroll_offset = None
+        if isinstance(offset, int) and offset > 0:
+            # If offset is int, it means we want to skip 'offset' items.
+            # We need to scroll to find the cursor.
+            _, scroll_offset = self.qdrant.scroll(
+                collection_name=collection_name,
+                scroll_filter=q_filter,
+                limit=offset,
+                with_payload=False,
+                with_vectors=False
+            )
+            if scroll_offset is None:
+                return []
+        elif isinstance(offset, str):
+            # If offset is str, it's a cursor (Point ID).
+            scroll_offset = offset
+
         res, _ = self.qdrant.scroll(
             collection_name=collection_name,
             scroll_filter=q_filter,
             limit=limit,
+            offset=scroll_offset,
             with_payload=True,
             with_vectors=False
         )

@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import uvicorn
 from dotenv import load_dotenv
@@ -15,7 +15,7 @@ from utils.vector_engine import VectorEngine
 
 load_dotenv()
 
-app = FastAPI(version="0.4.5")
+app = FastAPI(version="0.4.6")
 
 app.add_middleware(
     CORSMiddleware,
@@ -40,6 +40,7 @@ class StoreRequest(BaseModel):
 class SearchRequest(BaseModel):
     items: List[Dict[str, Any]]
     limit: int = 5
+    offset: int = 0
     collection: str
     filter: Optional[Dict[str, Any]] = None
     score: float = 0.2
@@ -52,6 +53,7 @@ class ClearRequest(BaseModel):
 class QueryRequest(BaseModel):
     query: Dict[str, Any]
     limit: int = 5
+    offset: Union[int, str, None] = None
     collection: str
 
 
@@ -149,7 +151,7 @@ async def vector_search(req: SearchRequest, token: Optional[str] = Header(None))
                 types.append("video")
         instructions = f"Target_modality: {' and '.join(types)}.\nInstruction:Compress the {'/'.join(types)} into one word.\nQuery:"
         embedding = await engine.get_embedding(req.items, instructions)
-        results = engine.search_vectors(embedding, limit=req.limit, collection_name=req.collection, filter=req.filter, score_threshold=req.score)
+        results = engine.search_vectors(embedding, limit=req.limit, offset=req.offset, collection_name=req.collection, filter=req.filter, score_threshold=req.score)
         return JSONResponse(content={"code": 200, "message": "success", "data": {"items": results}})
     except Exception as e:
         return JSONResponse(content={"code": 500, "message": str(e), "data": None})
@@ -159,7 +161,7 @@ async def vector_search(req: SearchRequest, token: Optional[str] = Header(None))
 async def vector_query(req: QueryRequest, token: Optional[str] = Header(None)):
     verify_token(token)
     try:
-        results = engine.query_vectors(req.query, limit=req.limit, collection_name=req.collection)
+        results = engine.query_vectors(req.query, limit=req.limit, offset=req.offset, collection_name=req.collection)
         return JSONResponse(content={"code": 200, "message": "success", "data": {"items": results}})
     except Exception as e:
         return JSONResponse(content={"code": 500, "message": str(e), "data": None})
