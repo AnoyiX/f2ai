@@ -51,6 +51,24 @@ class VectorEngine:
         self.qdrant.upsert(collection_name=collection_name, points=points)
         return vid
 
+    def delete_vectors(self, collection_name: str, filter: Dict[str, Any]) -> bool:
+        if not self._collection_exists(collection_name):
+            return False
+
+        conditions = []
+        for key, value in filter.items():
+            conditions.append(FieldCondition(key=key, match=MatchValue(value=value)))
+
+        if not conditions:
+            return False
+
+        q_filter = Filter(must=conditions)
+        self.qdrant.delete(
+            collection_name=collection_name,
+            points_selector=q_filter
+        )
+        return True
+
     def delete_collection(self, collection_name: str) -> bool:
         if self._collection_exists(collection_name):
             self.qdrant.delete_collection(collection_name=collection_name)

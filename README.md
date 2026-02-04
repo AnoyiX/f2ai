@@ -198,6 +198,45 @@ uvicorn main:app --reload
 | `collection` | String  | 是   | 搜索的目标集合名称。               |
 | `items`      | List    | 是   | 查询对象列表，支持多模态混合查询。 |
 | `limit`      | Integer | 否   | 返回结果数量，默认 5。             |
+
+### 4. 向量删除接口
+
+根据 filter 条件删除指定集合中的向量。
+
+- **URL**: `/api/vector/delete`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+#### 请求参数 (JSON Body)
+
+| 参数名       | 类型   | 必选 | 说明                                                       |
+| :----------- | :----- | :--- | :--------------------------------------------------------- |
+| `collection` | String | 是   | 目标向量集合名称。                                         |
+| `filter`     | Object | 是   | 删除条件，精确匹配 metadata 中的字段 (如 `{"file": "a.pdf"}`)。 |
+
+#### 请求示例
+
+```json
+{
+  "collection": "project_docs",
+  "filter": {
+    "file": "a.pdf"
+  }
+}
+```
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "deleted": true
+    }
+}
+```
+
 | `offset`     | Integer | 否   | 结果偏移量，用于分页，默认 0。     |
 | `filter`     | Object  | 否   | 过滤条件，键值对匹配。             |
 | `score`      | Float   | 否   | 相似度阈值，默认 0.2。            |

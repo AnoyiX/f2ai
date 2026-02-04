@@ -50,6 +50,11 @@ class ClearRequest(BaseModel):
     collection: str
 
 
+class DeleteRequest(BaseModel):
+    collection: str
+    filter: Dict[str, Any]
+
+
 class QueryRequest(BaseModel):
     query: Dict[str, Any]
     limit: int = 5
@@ -175,6 +180,20 @@ async def vector_clear(req: ClearRequest, token: Optional[str] = Header(None)):
         return JSONResponse(content={
             "code": 200,
             "message": "success" if success else "collection not found",
+            "data": {"deleted": success}
+        })
+    except Exception as e:
+        return JSONResponse(content={"code": 500, "message": str(e), "data": None})
+
+
+@app.post("/api/vector/delete")
+async def vector_delete(req: DeleteRequest, token: Optional[str] = Header(None)):
+    verify_token(token)
+    try:
+        success = engine.delete_vectors(req.collection, req.filter)
+        return JSONResponse(content={
+            "code": 200,
+            "message": "success" if success else "collection not found or filter empty",
             "data": {"deleted": success}
         })
     except Exception as e:
