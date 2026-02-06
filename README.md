@@ -76,7 +76,37 @@ uvicorn main:app --reload
 
 所有接口均支持 `token` 鉴权。如果服务端设置了 `API_TOKEN`，则可以通过 Header `token: xxx` 参数传递。
 
-### 1. 文件解析接口
+### 1. 文件上传接口
+
+仅上传文件，不进行任何解析处理。
+
+- **URL**: `/api/upload`
+- **Method**: `POST`
+- **Content-Type**: `multipart/form-data`
+
+#### 请求参数
+
+| 参数名 | 类型 | 必选 | 默认值 | 说明 |
+| :--- | :--- | :--- | :--- | :--- |
+| `file` | File | 是 | - | 需要上传的文件二进制流。 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "url": "/static/upload/2023/10/01/demo.pptx",
+        "size": 10240,
+        "name": "demo.pptx",
+        "md5": "e10adc3949ba59abbe...",
+        "contentType": "application/vnd.openxmlformats..."
+    }
+}
+```
+
+### 2. 文件解析接口
 
 上传文件并进行智能化处理（转图片、提取文本、ASR 等）。
 
@@ -124,7 +154,7 @@ uvicorn main:app --reload
 }
 ```
 
-### 2. 向量存储接口
+### 3. 向量存储接口
 
 将多模态数据（文本、图片、视频等）融合为一个向量并存储到 Qdrant，支持自定义元数据。
 注意：此接口会将 `items` 列表中的所有内容压缩为一个向量存储。
@@ -183,7 +213,7 @@ uvicorn main:app --reload
 }
 ```
 
-### 3. 向量检索接口
+### 4. 向量检索接口
 
 输入多模态数据（文本、图片、视频等），在指定集合中检索最相似的内容。
 
@@ -251,7 +281,7 @@ uvicorn main:app --reload
 }
 ```
 
-### 4. 向量元数据查询接口
+### 5. 向量元数据查询接口
 
 根据元数据精确查询向量数据。
 
@@ -307,7 +337,7 @@ uvicorn main:app --reload
 ```
 
 
-### 5. 向量删除接口
+### 6. 向量删除接口
 
 根据 filter 条件删除指定集合中的向量。
 
@@ -345,7 +375,7 @@ uvicorn main:app --reload
 }
 ```
 
-### 6. 向量清空接口
+### 7. 向量清空接口
 
 清空指定集合中的所有向量数据。
 

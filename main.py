@@ -15,7 +15,7 @@ from utils.vector_engine import VectorEngine
 
 load_dotenv()
 
-app = FastAPI(version="0.5.0")
+app = FastAPI(version="0.5.2")
 
 app.add_middleware(
     CORSMiddleware,
@@ -67,6 +67,39 @@ def verify_token(token: Optional[str]) -> None:
     if api_token:
         if not token or token != api_token:
             raise HTTPException(status_code=401, detail="Invalid or missing API Token")
+
+
+@app.post("/api/upload")
+async def upload_file(
+    token: str | None = Form(None),
+    file: UploadFile = File(...),
+    h_token: str | None = Header(None, alias="token")
+):
+    verify_token(token or h_token)
+    try:
+        # 1. Save File
+        file_info = await save_upload_file(file)
+
+        # 2. Construct Response
+        response_data = {
+            "code": 200,
+            "message": "success",
+            "data": {
+                "url": file_info['url'],
+                "size": file_info['size'],
+                "name": file_info['name'],
+                "md5": file_info['md5'],
+                "contentType": file_info['contentType']
+            }
+        }
+        return JSONResponse(content=response_data)
+
+    except Exception as e:
+        return JSONResponse(content={
+            "code": 500,
+            "message": str(e),
+            "data": None
+        })
 
 
 @app.post("/api/process")
