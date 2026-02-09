@@ -15,7 +15,7 @@ from utils.vector_engine import VectorEngine
 
 load_dotenv()
 
-app = FastAPI(version="0.5.2")
+app = FastAPI(version="0.5.3")
 
 app.add_middleware(
     CORSMiddleware,
@@ -60,6 +60,12 @@ class QueryRequest(BaseModel):
     limit: int = 5
     offset: Union[int, str, None] = None
     collection: str
+
+
+class UpdateRequest(BaseModel):
+    collection: str
+    filter: Dict[str, Any]
+    payload: Dict[str, Any]
 
 
 def verify_token(token: Optional[str]) -> None:
@@ -201,6 +207,20 @@ async def vector_query(req: QueryRequest, token: Optional[str] = Header(None)):
     try:
         results = engine.query_vectors(req.query, limit=req.limit, offset=req.offset, collection_name=req.collection)
         return JSONResponse(content={"code": 200, "message": "success", "data": {"items": results}})
+    except Exception as e:
+        return JSONResponse(content={"code": 500, "message": str(e), "data": None})
+
+
+@app.post("/api/vector/update")
+async def vector_update(req: UpdateRequest, token: Optional[str] = Header(None)):
+    verify_token(token)
+    try:
+        success = engine.update_vectors(req.collection, req.filter, req.payload)
+        return JSONResponse(content={
+            "code": 200,
+            "message": "success" if success else "collection not found or filter empty",
+            "data": {"updated": success}
+        })
     except Exception as e:
         return JSONResponse(content={"code": 500, "message": str(e), "data": None})
 

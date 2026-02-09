@@ -337,7 +337,51 @@ uvicorn main:app --reload
 ```
 
 
-### 6. 向量删除接口
+### 6. 向量元数据修改接口
+
+根据 filter 条件修改指定集合中向量的元数据。
+
+- **URL**: `/api/vector/update`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
+
+#### 请求参数 (JSON Body)
+
+| 参数名       | 类型   | 必选 | 说明                                                       |
+| :----------- | :----- | :--- | :--------------------------------------------------------- |
+| `collection` | String | 是   | 目标向量集合名称。                                         |
+| `filter`     | Object | 是   | 匹配条件，精确匹配 metadata 中的字段 (如 `{"file": "a.pdf"}`)。 |
+| `payload`    | Object | 是   | 需要更新或添加的元数据。 |
+
+#### 请求示例
+
+```json
+{
+  "collection": "project_docs",
+  "filter": {
+    "file": "a.pdf"
+  },
+  "payload": {
+    "status": "processed",
+    "updated_at": "2023-10-01"
+  }
+}
+```
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "updated": true
+    }
+}
+```
+
+
+### 7. 向量删除接口
 
 根据 filter 条件删除指定集合中的向量。
 
@@ -375,7 +419,7 @@ uvicorn main:app --reload
 }
 ```
 
-### 7. 向量清空接口
+### 8. 向量清空接口
 
 清空指定集合中的所有向量数据。
 
