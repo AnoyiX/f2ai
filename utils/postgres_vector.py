@@ -19,7 +19,6 @@ class PostgresVector:
     def _ensure_table(self, table_name: str, dim: int):
         with self._connect() as conn:
             with conn.cursor() as cur:
-                cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
                 cur.execute(f"""
                     CREATE TABLE IF NOT EXISTS "{table_name}" (
                         id UUID PRIMARY KEY,

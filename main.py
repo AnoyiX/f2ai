@@ -15,7 +15,7 @@ from utils.vector_engine import VectorEngine
 
 load_dotenv()
 
-app = FastAPI(version="0.6.0")
+app = FastAPI(version="0.6.1")
 
 app.add_middleware(
     CORSMiddleware,
