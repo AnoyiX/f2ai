@@ -31,7 +31,7 @@ class PostgresVector:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT EXISTS (
-                        SELECT FROM information_schema.tables 
+                        SELECT 1 FROM information_schema.tables 
                         WHERE table_name = %s
                     )
                 """, (table_name,))
@@ -74,10 +74,10 @@ class PostgresVector:
             # So score = 1 - distance
             
             query = f"""
-                SELECT id, payload, 1 - (embedding <=> %s) as score
+                SELECT id, payload, 1 - (embedding <=> %s::vector) as score
                 FROM "{collection_name}"
                 {where_clause}
-                ORDER BY embedding <=> %s
+                ORDER BY embedding <=> %s::vector
                 LIMIT %s OFFSET %s
             """
             # We need to pass vector twice
