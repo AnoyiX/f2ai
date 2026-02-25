@@ -4,7 +4,6 @@ import uuid
 from typing import Any, Dict, List, Optional, Union
 import psycopg
 from psycopg.types.json import Jsonb
-from pgvector.psycopg import register_vector
 
 class PostgresVector:
     def __init__(self) -> None:
@@ -13,7 +12,6 @@ class PostgresVector:
     def _connect(self):
         conn = psycopg.connect(self.url)
         # Register vector type
-        register_vector(conn)
         return conn
 
     def _ensure_table(self, table_name: str, dim: int):
@@ -40,6 +38,8 @@ class PostgresVector:
                 return cur.fetchone()[0]
 
     def upsert(self, collection_name: str, vector: List[float], payload: Dict[str, Any]) -> str:
+        # Ensure all elements in the vector are floats
+        vector = [float(x) for x in vector]
         self._ensure_table(collection_name, len(vector))
         vid = str(uuid.uuid4())
         with self._connect() as conn:
@@ -52,6 +52,8 @@ class PostgresVector:
         return vid
 
     def search(self, collection_name: str, vector: List[float], limit: int = 5, offset: int = 0, filter: Optional[Dict[str, Any]] = None, score_threshold: float = 0.0) -> List[Dict[str, Any]]:
+        # Ensure all elements in the vector are floats
+        vector = [float(x) for x in vector]
         if not self._table_exists(collection_name):
             return []
         
