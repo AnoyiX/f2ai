@@ -15,7 +15,7 @@ from utils.vector_engine import VectorEngine
 
 load_dotenv()
 
-app = FastAPI(version="0.5.3")
+app = FastAPI(version="0.6.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,6 +35,7 @@ class StoreRequest(BaseModel):
     items: List[Dict[str, Any]]
     metadata: Optional[Dict[str, Any]] = None
     collection: str
+    dbType: str = "qdrant"
 
 
 class SearchRequest(BaseModel):
@@ -44,15 +45,18 @@ class SearchRequest(BaseModel):
     collection: str
     filter: Optional[Dict[str, Any]] = None
     score: float = 0.2
+    dbType: str = "qdrant"
 
 
 class ClearRequest(BaseModel):
     collection: str
+    dbType: str = "qdrant"
 
 
 class DeleteRequest(BaseModel):
     collection: str
     filter: Dict[str, Any]
+    dbType: str = "qdrant"
 
 
 class QueryRequest(BaseModel):
@@ -60,12 +64,14 @@ class QueryRequest(BaseModel):
     limit: int = 5
     offset: Union[int, str, None] = None
     collection: str
+    dbType: str = "qdrant"
 
 
 class UpdateRequest(BaseModel):
     collection: str
     filter: Dict[str, Any]
     payload: Dict[str, Any]
+    dbType: str = "qdrant"
 
 
 def verify_token(token: Optional[str]) -> None:
@@ -171,7 +177,7 @@ async def vector_store(req: StoreRequest, token: Optional[str] = Header(None)):
             'items': req.items,
             **(req.metadata or {})
         }
-        id = engine.upsert_vector(embedding, payload, req.collection)
+        id = engine.upsert_vector(embedding, payload, req.collection, req.dbType)
         return JSONResponse(content={
             "code": 200,
             "message": "success",
@@ -195,7 +201,7 @@ async def vector_search(req: SearchRequest, token: Optional[str] = Header(None))
                 types.append("video")
         instructions = f"Target_modality: {' and '.join(types)}.\nInstruction:Compress the {'/'.join(types)} into one word.\nQuery:"
         embedding = await engine.get_embedding(req.items, instructions)
-        results = engine.search_vectors(embedding, limit=req.limit, offset=req.offset, collection_name=req.collection, filter=req.filter, score_threshold=req.score)
+        results = engine.search_vectors(embedding, limit=req.limit, offset=req.offset, collection_name=req.collection, filter=req.filter, score_threshold=req.score, db_type=req.dbType)
         return JSONResponse(content={"code": 200, "message": "success", "data": {"items": results}})
     except Exception as e:
         return JSONResponse(content={"code": 500, "message": str(e), "data": None})
@@ -205,7 +211,7 @@ async def vector_search(req: SearchRequest, token: Optional[str] = Header(None))
 async def vector_query(req: QueryRequest, token: Optional[str] = Header(None)):
     verify_token(token)
     try:
-        results = engine.query_vectors(req.query, limit=req.limit, offset=req.offset, collection_name=req.collection)
+        results = engine.query_vectors(req.query, limit=req.limit, offset=req.offset, collection_name=req.collection, db_type=req.dbType)
         return JSONResponse(content={"code": 200, "message": "success", "data": {"items": results}})
     except Exception as e:
         return JSONResponse(content={"code": 500, "message": str(e), "data": None})
@@ -215,7 +221,7 @@ async def vector_query(req: QueryRequest, token: Optional[str] = Header(None)):
 async def vector_update(req: UpdateRequest, token: Optional[str] = Header(None)):
     verify_token(token)
     try:
-        success = engine.update_vectors(req.collection, req.filter, req.payload)
+        success = engine.update_vectors(req.collection, req.filter, req.payload, req.dbType)
         return JSONResponse(content={
             "code": 200,
             "message": "success" if success else "collection not found or filter empty",
@@ -229,7 +235,7 @@ async def vector_update(req: UpdateRequest, token: Optional[str] = Header(None))
 async def vector_clear(req: ClearRequest, token: Optional[str] = Header(None)):
     verify_token(token)
     try:
-        success = engine.delete_collection(req.collection)
+        success = engine.delete_collection(req.collection, req.dbType)
         return JSONResponse(content={
             "code": 200,
             "message": "success" if success else "collection not found",
@@ -243,7 +249,7 @@ async def vector_clear(req: ClearRequest, token: Optional[str] = Header(None)):
 async def vector_delete(req: DeleteRequest, token: Optional[str] = Header(None)):
     verify_token(token)
     try:
-        success = engine.delete_vectors(req.collection, req.filter)
+        success = engine.delete_vectors(req.collection, req.filter, req.dbType)
         return JSONResponse(content={
             "code": 200,
             "message": "success" if success else "collection not found or filter empty",

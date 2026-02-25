@@ -9,3 +9,5 @@ faster-whisper
 dotenv
 qdrant-client
 httpx
+psycopg[binary]
+pgvector

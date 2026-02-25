@@ -35,6 +35,7 @@
 | `ARK_EMBEDDING_MODEL` | 否     | `doubao-embedding-vision-251215` | 火山引擎多模态 Embedding 模型 ID。                 |
 | `QDRANT_HOST`         | 否     | `http://localhost:6333`          | Qdrant 向量数据库地址。                            |
 | `QDRANT_API_KEY`      | 否     | -                                | Qdrant 访问密钥 (如有)。                           |
+| `POSTGRES_URL`        | 否     | `postgresql://postgres:postgres@localhost:5432/postgres` | PostgreSQL 数据库连接地址 (用于向量存储)。          |
 
 ### 2. 使用 Docker 运行 (推荐)
 
@@ -168,6 +169,7 @@ uvicorn main:app --reload
 | 参数名       | 类型   | 必选 | 说明                                                             |
 | :----------- | :----- | :--- | :--------------------------------------------------------------- |
 | `collection` | String | 是   | 目标向量集合名称 (如 `ppt_knowledge`)。不存在会自动创建。        |
+| `dbType`     | String | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
 | `items`      | List   | 是   | 需要向量化的多模态片段列表。                                     |
 | `metadata`   | Object | 否   | 任意 JSON 对象，随向量存储 (如 `{"page": 1, "file": "a.pdf"}`)。 |
 
@@ -226,6 +228,7 @@ uvicorn main:app --reload
 | 参数名       | 类型    | 必选 | 说明                               |
 | :----------- | :------ | :--- | :--------------------------------- |
 | `collection` | String  | 是   | 搜索的目标集合名称。               |
+| `dbType`     | String  | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
 | `items`      | List    | 是   | 查询对象列表，支持多模态混合查询。 |
 | `limit`      | Integer | 否   | 返回结果数量，默认 5。             |
 | `offset`     | Integer | 否   | 结果偏移量，用于分页，默认 0。     |
@@ -294,6 +297,7 @@ uvicorn main:app --reload
 | 参数名       | 类型    | 必选 | 说明                               |
 | :----------- | :------ | :--- | :--------------------------------- |
 | `collection` | String  | 是   | 搜索的目标集合名称。               |
+| `dbType`     | String  | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
 | `query`      | Object  | 是   | 查询条件，键值对匹配。             |
 | `limit`      | Integer | 否   | 返回结果数量，默认 5。             |
 | `offset`     | Int/Str | 否   | 分页参数。传入整数时为偏移量（跳过 N 条）；传入字符串时为游标（上一页最后一条的 ID）。 |
@@ -350,6 +354,7 @@ uvicorn main:app --reload
 | 参数名       | 类型   | 必选 | 说明                                                       |
 | :----------- | :----- | :--- | :--------------------------------------------------------- |
 | `collection` | String | 是   | 目标向量集合名称。                                         |
+| `dbType`     | String | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
 | `filter`     | Object | 是   | 匹配条件，精确匹配 metadata 中的字段 (如 `{"file": "a.pdf"}`)。 |
 | `payload`    | Object | 是   | 需要更新或添加的元数据。 |
 
@@ -394,6 +399,7 @@ uvicorn main:app --reload
 | 参数名       | 类型   | 必选 | 说明                                                       |
 | :----------- | :----- | :--- | :--------------------------------------------------------- |
 | `collection` | String | 是   | 目标向量集合名称。                                         |
+| `dbType`     | String | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
 | `filter`     | Object | 是   | 删除条件，精确匹配 metadata 中的字段 (如 `{"file": "a.pdf"}`)。 |
 
 #### 请求示例
@@ -432,6 +438,7 @@ uvicorn main:app --reload
 | 参数名       | 类型   | 必选 | 说明                 |
 | :----------- | :----- | :--- | :------------------- |
 | `collection` | String | 是   | 需要清空的集合名称。 |
+| `dbType`     | String | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
 
 #### 请求示例
 
