@@ -52,7 +52,6 @@ class VectorEngine:
                     "instruct": instructions,
                 }
             }
-            print(payload)
             async with httpx.AsyncClient(timeout=300) as client:
                 r = await client.post(url, headers=headers, json=payload)
                 r.raise_for_status()

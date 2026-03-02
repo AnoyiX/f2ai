@@ -15,7 +15,7 @@ from utils.vector_engine import VectorEngine
 
 load_dotenv()
 
-app = FastAPI(version="0.6.4")
+app = FastAPI(version="0.6.5")
 
 app.add_middleware(
     CORSMiddleware,
@@ -205,7 +205,7 @@ async def vector_search(req: SearchRequest, token: Optional[str] = Header(None))
         instructions = f"Target_modality: {' and '.join(types)}.\nInstruction:Compress the {'/'.join(types)} into one word.\nQuery:"
         embedding = await engine.get_embedding(req.aiModel, req.items, instructions)
         metadata_filter = {'aiModel': req.aiModel }
-        metadata_filter.update(req.filter)
+        metadata_filter.update(req.filter or {})
         results = engine.search_vectors(embedding, limit=req.limit, offset=req.offset, collection_name=req.collection, filter=metadata_filter, score_threshold=req.score, db_type=req.dbType)
         return JSONResponse(content={"code": 200, "message": "success", "data": {"items": results}})
     except Exception as e:
