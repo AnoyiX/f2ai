@@ -15,7 +15,7 @@ from utils.vector_engine import VectorEngine
 
 load_dotenv()
 
-app = FastAPI(version="0.6.3")
+app = FastAPI(version="0.6.4")
 
 app.add_middleware(
     CORSMiddleware,
@@ -36,6 +36,7 @@ class StoreRequest(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
     collection: str
     dbType: str = "qdrant"
+    aiModel: str = "doubao-embedding-vision-251215"
 
 
 class SearchRequest(BaseModel):
@@ -46,6 +47,7 @@ class SearchRequest(BaseModel):
     filter: Optional[Dict[str, Any]] = None
     score: float = 0.2
     dbType: str = "qdrant"
+    aiModel: str = "doubao-embedding-vision-251215"
 
 
 class ClearRequest(BaseModel):
@@ -172,9 +174,10 @@ async def vector_store(req: StoreRequest, token: Optional[str] = Header(None)):
             elif 'video' in item:
                 types.append("video")
         instructions = f"Instruction:Compress the {'/'.join(types)} into one word.\nQuery:"
-        embedding = await engine.get_embedding(req.items, instructions)
+        embedding = await engine.get_embedding(req.aiModel, req.items, instructions)
         payload = {
             'items': req.items,
+            'aiModel': req.aiModel,
             **(req.metadata or {})
         }
         id = engine.upsert_vector(embedding, payload, req.collection, req.dbType)
@@ -200,8 +203,10 @@ async def vector_search(req: SearchRequest, token: Optional[str] = Header(None))
             elif 'video' in item:
                 types.append("video")
         instructions = f"Target_modality: {' and '.join(types)}.\nInstruction:Compress the {'/'.join(types)} into one word.\nQuery:"
-        embedding = await engine.get_embedding(req.items, instructions)
-        results = engine.search_vectors(embedding, limit=req.limit, offset=req.offset, collection_name=req.collection, filter=req.filter, score_threshold=req.score, db_type=req.dbType)
+        embedding = await engine.get_embedding(req.aiModel, req.items, instructions)
+        metadata_filter = {'aiModel': req.aiModel }
+        metadata_filter.update(req.filter)
+        results = engine.search_vectors(embedding, limit=req.limit, offset=req.offset, collection_name=req.collection, filter=metadata_filter, score_threshold=req.score, db_type=req.dbType)
         return JSONResponse(content={"code": 200, "message": "success", "data": {"items": results}})
     except Exception as e:
         return JSONResponse(content={"code": 500, "message": str(e), "data": None})

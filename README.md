@@ -2,24 +2,6 @@
 
 这是一个基于 FastAPI 构建的综合性 AI 辅助服务，旨在解决 AI 应用中的非结构化数据处理难题。它提供了一站式的文件解析能力和多模态向量化检索能力，帮助开发者快速构建 RAG（检索增强生成）应用或多模态知识库。
 
-## 核心功能
-
-服务提供统一的 RESTful API 接口，覆盖以下核心场景：
-
-### 1. 文件智能解析
-接收任意格式的文件，根据类型自动清洗并转换为 AI 友好的格式：
-- **Office 文档 (Doc/Docx/PPT/PPTX)**: 自动转 PDF 并提取每页为高清图片。
-- **PDF 文档**: 提取每页为图片，保留原文件。
-- **Excel 文档**: 转换为无样式的纯 HTML 表格，保留 `rowspan`/`colspan` 结构。
-- **文本与代码**: 自动识别编码，提取纯文本。
-- **多媒体 (音视频)**: 视频自动抽帧转图片，音频/视频语音自动转文本 (ASR)。
-
-### 2. 多模态向量化与检索
-基于火山引擎 (Doubao Model) 和 Qdrant 构建的向量引擎：
-- **多模态 Embedding**: 支持文本和图片混合输入，统一映射到同一语义空间。
-- **灵活元数据**: 向量存储时支持附带任意 JSON 元数据（如原文件路径、页码、业务 ID），检索时原样返回。
-- **自动集合管理**: 根据输入自动创建和管理 Qdrant 集合。
-
 ---
 
 ## 快速开始
@@ -28,14 +10,14 @@
 
 在启动服务前，请根据需要配置以下环境变量。建议创建 `.env` 文件。
 
-| 变量名                | 必填   | 默认值                           | 说明                                               |
-| :-------------------- | :----- | :------------------------------- | :------------------------------------------------- |
-| `API_TOKEN`           | 否     | -                                | 接口访问鉴权 Token，设置后所有接口需携带 `token`。 |
-| `ARK_API_KEY`         | **是** | -                                | 火山引擎 API Key (用于向量化)。                    |
-| `ARK_EMBEDDING_MODEL` | 否     | `doubao-embedding-vision-251215` | 火山引擎多模态 Embedding 模型 ID。                 |
-| `QDRANT_HOST`         | 否     | `http://localhost:6333`          | Qdrant 向量数据库地址。                            |
-| `QDRANT_API_KEY`      | 否     | -                                | Qdrant 访问密钥 (如有)。                           |
-| `POSTGRES_URL`        | 否     | `postgresql://postgres:postgres@localhost:5432/postgres` | PostgreSQL 数据库连接地址 (用于向量存储)。          |
+| 变量名           | 必填   | 默认值                                                   | 说明                                             |
+| :--------------- | :----- | :------------------------------------------------------- | :----------------------------------------------- |
+| `API_TOKEN`      | 否     | -                                                        | 接口访问鉴权 Token，设置后所有接口需携带 `token` |
+| `ARK_API_KEY`    | **是** | -                                                        | 火山引擎 API Key                                 |
+| `ALI_API_KEY`    | 否     | -                                                        | 阿里云 API Key                                   |
+| `QDRANT_HOST`    | 否     | `http://localhost:6333`                                  | Qdrant 向量数据库地址                            |
+| `QDRANT_API_KEY` | 否     | -                                                        | Qdrant 访问密钥                                  |
+| `POSTGRES_URL`   | 否     | `postgresql://postgres:postgres@localhost:5432/postgres` | PostgreSQL 数据库连接地址。                      |
 
 ### 2. 使用 Docker 运行 (推荐)
 
@@ -50,6 +32,7 @@ docker run -d -p 8000:8000 \
   -v ~/static:/app/static \
   -e API_TOKEN=your_secret_token \
   -e ARK_API_KEY=your_ark_key \
+  -e ALI_API_KEY=your_ali_key \
   -e QDRANT_HOST=http://host.docker.internal:6333 \
   --name f2ai f2ai:latest
 ```
@@ -87,9 +70,9 @@ uvicorn main:app --reload
 
 #### 请求参数
 
-| 参数名 | 类型 | 必选 | 默认值 | 说明 |
-| :--- | :--- | :--- | :--- | :--- |
-| `file` | File | 是 | - | 需要上传的文件二进制流。 |
+| 参数名 | 类型 | 必选 | 默认值 | 说明                     |
+| :----- | :--- | :--- | :----- | :----------------------- |
+| `file` | File | 是   | -      | 需要上传的文件二进制流。 |
 
 #### 响应示例
 
@@ -169,7 +152,8 @@ uvicorn main:app --reload
 | 参数名       | 类型   | 必选 | 说明                                                             |
 | :----------- | :----- | :--- | :--------------------------------------------------------------- |
 | `collection` | String | 是   | 目标向量集合名称 (如 `ppt_knowledge`)。不存在会自动创建。        |
-| `dbType`     | String | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
+| `dbType`     | String | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。           |
+| `aiModel`    | String | 否   | 向量化模型名称，默认 `doubao-embedding-vision-251215`。          |
 | `items`      | List   | 是   | 需要向量化的多模态片段列表。                                     |
 | `metadata`   | Object | 否   | 任意 JSON 对象，随向量存储 (如 `{"page": 1, "file": "a.pdf"}`)。 |
 
@@ -225,15 +209,16 @@ uvicorn main:app --reload
 
 #### 请求参数 (JSON Body)
 
-| 参数名       | 类型    | 必选 | 说明                               |
-| :----------- | :------ | :--- | :--------------------------------- |
-| `collection` | String  | 是   | 搜索的目标集合名称。               |
+| 参数名       | 类型    | 必选 | 说明                                                   |
+| :----------- | :------ | :--- | :----------------------------------------------------- |
+| `collection` | String  | 是   | 搜索的目标集合名称。                                   |
 | `dbType`     | String  | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
-| `items`      | List    | 是   | 查询对象列表，支持多模态混合查询。 |
-| `limit`      | Integer | 否   | 返回结果数量，默认 5。             |
-| `offset`     | Integer | 否   | 结果偏移量，用于分页，默认 0。     |
-| `filter`     | Object  | 否   | 过滤条件，键值对匹配。             |
-| `score`      | Float   | 否   | 相似度阈值，默认 0.2。            |
+| `aiModel`    | String  | 否   | 向量化模型名称，默认 `doubao-embedding-vision-251215`。|
+| `items`      | List    | 是   | 查询对象列表，支持多模态混合查询。                     |
+| `limit`      | Integer | 否   | 返回结果数量，默认 5。                                 |
+| `offset`     | Integer | 否   | 结果偏移量，用于分页，默认 0。                         |
+| `filter`     | Object  | 否   | 过滤条件，键值对匹配。                                 |
+| `score`      | Float   | 否   | 相似度阈值，默认 0.2。                                 |
 
 #### 请求示例
 
@@ -294,12 +279,12 @@ uvicorn main:app --reload
 
 #### 请求参数 (JSON Body)
 
-| 参数名       | 类型    | 必选 | 说明                               |
-| :----------- | :------ | :--- | :--------------------------------- |
-| `collection` | String  | 是   | 搜索的目标集合名称。               |
-| `dbType`     | String  | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
-| `query`      | Object  | 是   | 查询条件，键值对匹配。             |
-| `limit`      | Integer | 否   | 返回结果数量，默认 5。             |
+| 参数名       | 类型    | 必选 | 说明                                                                                   |
+| :----------- | :------ | :--- | :------------------------------------------------------------------------------------- |
+| `collection` | String  | 是   | 搜索的目标集合名称。                                                                   |
+| `dbType`     | String  | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。                                 |
+| `query`      | Object  | 是   | 查询条件，键值对匹配。                                                                 |
+| `limit`      | Integer | 否   | 返回结果数量，默认 5。                                                                 |
 | `offset`     | Int/Str | 否   | 分页参数。传入整数时为偏移量（跳过 N 条）；传入字符串时为游标（上一页最后一条的 ID）。 |
 
 #### 请求示例
@@ -351,12 +336,12 @@ uvicorn main:app --reload
 
 #### 请求参数 (JSON Body)
 
-| 参数名       | 类型   | 必选 | 说明                                                       |
-| :----------- | :----- | :--- | :--------------------------------------------------------- |
-| `collection` | String | 是   | 目标向量集合名称。                                         |
-| `dbType`     | String | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
+| 参数名       | 类型   | 必选 | 说明                                                            |
+| :----------- | :----- | :--- | :-------------------------------------------------------------- |
+| `collection` | String | 是   | 目标向量集合名称。                                              |
+| `dbType`     | String | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。          |
 | `filter`     | Object | 是   | 匹配条件，精确匹配 metadata 中的字段 (如 `{"file": "a.pdf"}`)。 |
-| `payload`    | Object | 是   | 需要更新或添加的元数据。 |
+| `payload`    | Object | 是   | 需要更新或添加的元数据。                                        |
 
 #### 请求示例
 
@@ -396,10 +381,10 @@ uvicorn main:app --reload
 
 #### 请求参数 (JSON Body)
 
-| 参数名       | 类型   | 必选 | 说明                                                       |
-| :----------- | :----- | :--- | :--------------------------------------------------------- |
-| `collection` | String | 是   | 目标向量集合名称。                                         |
-| `dbType`     | String | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
+| 参数名       | 类型   | 必选 | 说明                                                            |
+| :----------- | :----- | :--- | :-------------------------------------------------------------- |
+| `collection` | String | 是   | 目标向量集合名称。                                              |
+| `dbType`     | String | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。          |
 | `filter`     | Object | 是   | 删除条件，精确匹配 metadata 中的字段 (如 `{"file": "a.pdf"}`)。 |
 
 #### 请求示例
@@ -435,9 +420,9 @@ uvicorn main:app --reload
 
 #### 请求参数 (JSON Body)
 
-| 参数名       | 类型   | 必选 | 说明                 |
-| :----------- | :----- | :--- | :------------------- |
-| `collection` | String | 是   | 需要清空的集合名称。 |
+| 参数名       | 类型   | 必选 | 说明                                                   |
+| :----------- | :----- | :--- | :----------------------------------------------------- |
+| `collection` | String | 是   | 需要清空的集合名称。                                   |
 | `dbType`     | String | 否   | 向量数据库类型，可选 `qdrant` (默认) 或 `postgresql`。 |
 
 #### 请求示例

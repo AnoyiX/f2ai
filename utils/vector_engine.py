@@ -11,23 +11,53 @@ class VectorEngine:
     def __init__(self) -> None:
         self.ark_api_key = os.getenv("ARK_API_KEY", "")
         self.ark_model = os.getenv("ARK_EMBEDDING_MODEL", "doubao-embedding-vision-251215")
+        self.ali_api_key = os.getenv("ALI_API_KEY", "")
+        self.ali_model = os.getenv("ALI_EMBEDDING_MODEL", "qwen3-vl-embedding")
         self.qdrant = QdrantVector()
         self.postgres = PostgresVector()
 
-    async def get_embedding(self, inputs: List[Dict[str, Any]], instructions: str = "") -> List[float]:
-        if not self.ark_api_key:
-            raise ValueError("ARK_API_KEY未配置")
-        url = "https://ark.cn-beijing.volces.com/api/v3/embeddings/multimodal"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.ark_api_key}",
-        }
-        payload = {"model": self.ark_model, "input": inputs, "instructions": instructions}
-        async with httpx.AsyncClient(timeout=300) as client:
-            r = await client.post(url, headers=headers, json=payload)
-            r.raise_for_status()
-            data = r.json()
-        return data.get("data", {}).get("embedding")
+    async def get_embedding(self, model: str, inputs: List[Dict[str, Any]], instructions: str = "") -> List[float]:
+        if model == self.ark_model:
+            if not self.ark_api_key:
+                raise ValueError("ARK_API_KEY未配置")
+            url = "https://ark.cn-beijing.volces.com/api/v3/embeddings/multimodal"
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.ark_api_key}",
+            }
+            payload = {"model": self.ark_model, "input": inputs, "instructions": instructions}
+            async with httpx.AsyncClient(timeout=300) as client:
+                r = await client.post(url, headers=headers, json=payload)
+                r.raise_for_status()
+                data = r.json()
+            return data.get("data", {}).get("embedding")
+        else:
+            if not self.ali_api_key:
+                raise ValueError("ALI_API_KEY未配置")
+            url = "https://dashscope.aliyuncs.com/api/v1/services/embeddings/multimodal-embedding/multimodal-embedding"
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.ali_api_key}",
+            }
+            contents = [{x['type']: x[x['type']]} for x in inputs]
+            payload = {
+                "model": self.ali_model,
+                "input": {
+                    "contents": contents
+                },
+                "parameters": {
+                    "output_type": "dense",
+                    "dimension": 2048,
+                    "fps": 1,
+                    "instruct": instructions,
+                }
+            }
+            print(payload)
+            async with httpx.AsyncClient(timeout=300) as client:
+                r = await client.post(url, headers=headers, json=payload)
+                r.raise_for_status()
+                data = r.json()
+            return data.get("output", {}).get("embeddings", [{}])[0].get("embedding")
 
     def upsert_vector(self, vector: List[float], payload: Dict[str, Any], collection_name: str, db_type: str = "qdrant") -> str:
         if db_type == "postgresql":
